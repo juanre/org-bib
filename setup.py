@@ -11,4 +11,5 @@ setup(name='storebook',
       packages=['storebook'],
       entry_points = {
             'console_scripts': ['storebook = storebook.importer:as_main',
-                                'azwclean = storebook.cleanup:as_main']})
+                                'azwclean = storebook.cleanup:as_main',
+                                'bookmeta = storebook.bookmeta:as_main']})
