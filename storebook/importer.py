@@ -20,6 +20,8 @@ Options:
 -m dir, --master=dir  Directory to which book files will be copied.
 -s dir, --source=dir  Directory in which to look for books.
 -b fname, --bib=fname Bib file, by default 'ref.bib'
+-o fname, --org=fname Org-mode file, by default 'ref.org', to which
+                      clippings will be appended.
 -a, --also-repeated   Process books that already appear on the bib file
                       (by default they are ignored)
 -k str, --kindle=str  Serial of the kindle for which the books have been
@@ -43,7 +45,7 @@ from orgklip.clipper import KindleBook
 
 
 class ImportBooks(object):
-    def __init__(self, sourcedir, masterdir, bibfile,
+    def __init__(self, sourcedir, masterdir, bibfile, orgfile,
                  serial=None, alfdir=None, also_repeated=False):
         self.sourcedir = os.path.expanduser(sourcedir)
         self.masterdir = os.path.expanduser(masterdir)
@@ -52,6 +54,7 @@ class ImportBooks(object):
         else:
             self.cleanup = None
         self.bibfile = os.path.expanduser(bibfile)
+        self.orgfile = os.path.expanduser(orgfile)
         self.also_repeated = also_repeated
 
     def add_to_bib(self, bibstr, bibid):
@@ -68,7 +71,7 @@ class ImportBooks(object):
 
     def clippings_to_org(self, bookfile):
         kc = KindleBook(bookfile, org_path='.', text_path='text')
-        kc.print_clippings('ref.org')
+        kc.print_clippings(self.orgfile)
 
     def convert(self, book):
         if not os.path.exists(book):
@@ -91,9 +94,11 @@ class ImportBooks(object):
                 os.rename(book, newbook)
             else:
                 devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
-                subprocess.call(['ebook-convert', book,
-                                 newbook],
-                                stdout=devnull, stderr=devnull)
+                if subprocess.call(['ebook-convert', book,
+                                    newbook],
+                                    stdout=devnull, stderr=devnull):
+                    print "** Error converting to", newbook, "(maybe DRMed book?)"
+                    return None
 
             self.clippings_to_org(newbook)
             print ' ->', newbook
@@ -110,15 +115,16 @@ def as_main():
         print __doc__ % (__author__, __date__)
 
     from getopt import getopt
-    opts, files = getopt(sys.argv[1:], 'hm:s:b:ak:d:',
-                         ['help', 'master=', 'source=', 'bib='
-                          'also-repeated', 'kindle=', 'alf='])
+    opts, files = getopt(sys.argv[1:], 'hm:s:b:o:ak:d:',
+                         ['help', 'master=', 'source=', 'bib=', 'org=',
+                          'also-repeated', 'kindle=', 'dedrm='])
     master = ''
     source = ''
     also_repeated = False
     serial = None
     alfdir = None
     bibfile = 'ref.bib'
+    orgfile = 'ref.org'
     for (opt, val) in opts:
         if   opt == '-h' or opt == '--help':
             help()
@@ -129,14 +135,17 @@ def as_main():
             source = val
         elif opt == '-b' or opt == '--bib':
             bibfile = val
+        elif opt == '-o' or opt == '--org':
+            orgfile = val
         elif opt == '-a' or opt == '--also-repeated':
             also_repeated = True
         elif opt == '-k' or opt == '--kindle':
             serial = val
-        elif opt == '-d' or opt == '--alf':
+        elif opt == '-d' or opt == '--dedrm':
             alfdir = val
 
-    fr = ImportBooks(source, master, bibfile, serial, alfdir, also_repeated)
+    fr = ImportBooks(source, master, bibfile, orgfile,
+                     serial, alfdir, also_repeated)
 
     if files:
         for fname in files:
