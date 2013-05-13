@@ -2,14 +2,17 @@
 
 from setuptools import setup
 
-setup(name='storebook',
+setup(name='orgbib',
       version='0.0.1',
-      description='Properly organize kindle books.',
+      description='Bibliography to org-mode, including kindle book clipping.',
       author='Juan Reyero',
       author_email='juan@juanreyero.com',
       url='http://juanreyero.com/',
-      packages=['storebook'],
+      packages=['orgbib'],
       entry_points = {
-            'console_scripts': ['storebook = storebook.importer:as_main',
-                                'azwclean = storebook.cleanup:as_main',
-                                'bookmeta = storebook.bookmeta:as_main']})
+            'console_scripts': ['bibimport = orgbib.importer:as_main',
+                                'azwclean = orgbib.cleanup:as_main',
+                                'docmeta = orgbib.docmeta:as_main',
+                                'docbib = orgbib.docid:as_main',
+                                'bookclips = orgbib.clipper:as_main']},
+      test_suite='orgbib.test.orgbib_test.suite')

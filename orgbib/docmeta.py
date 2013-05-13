@@ -1,60 +1,22 @@
 # -*- coding: utf-8 -*-
-"""bookmeta
+"""docmeta
 By %s
 %s
 
 Interactive wrapper around some parts of ebook-meta, one of the apps
 that come with calibre.
 
-Usage: bookmeta book_file[s]
+Usage: docmeta book_file[s]
 """
 __date__ = "2013-05-02"
 __author__ = "Juan Reyero, http://juanreyero.com"
 
 import sys, os, codecs
 import webbrowser, urllib
-import orgklip.bookid as bookid
+import docid
 import collections
 import subprocess
-
-#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-
-class _Getch:
-    """Gets a single character from standard input.  Does not echo to the screen."""
-    def __init__(self):
-        try:
-            self.impl = _GetchWindows()
-        except ImportError:
-            self.impl = _GetchUnix()
-
-    def __call__(self): return self.impl()
-
-
-class _GetchUnix:
-    def __init__(self):
-        import tty, sys
-
-    def __call__(self):
-        import sys, tty, termios
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
-
-
-class _GetchWindows:
-    def __init__(self):
-        import msvcrt
-
-    def __call__(self):
-        import msvcrt
-        return msvcrt.getch()
-
-getch = _Getch()
+from getch import getch
 
 
 def print_meta(meta, fields):
@@ -65,7 +27,7 @@ def print_meta(meta, fields):
         print "%15s [%s]: %s" % (field, field[0], value)
 
 def interactive_meta(bookfile):
-    meta = bookid.guess_meta(bookfile)
+    meta = docid.guess_meta(bookfile)
 
     fields = ['author', 'date', 'isbn', 'language', 'publisher',
               'title', 'google', 'books at google', 'open library',
@@ -119,8 +81,8 @@ def interactive_meta(bookfile):
         if not search and 'isbn' in meta:
             search = meta['isbn']
         if search:
-            webbrowser.open('http://en.wikipedia.org/wiki/Special:BookSources/' +
-                            search)
+            webbrowser.open('http://en.wikipedia.org/wiki/' +
+                            'Special:BookSources/' + search)
     formatters['wikipedia'] = lambda v: open_wikipedia(v)
 
     def cl_option(fname, val):
@@ -149,7 +111,7 @@ def interactive_meta(bookfile):
             devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
             subprocess.call(['ebook-meta', cl_option(field, value), bookfile],
                              stdout=devnull, stderr=devnull)
-            meta = bookid.guess_meta(bookfile)
+            meta = docid.guess_meta(bookfile)
             print_meta(meta, fields)
 
 

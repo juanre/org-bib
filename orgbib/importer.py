@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""storebook
+"""refstore
 By %s
 %s
 
@@ -13,7 +13,7 @@ as kindle-clippings.txt in the current directory.)
 If no book files are specified it will import all the books in the
 source directory.
 
-Usage: storebook [options] [book_file[s]]
+Usage: refstore [options] [book_file[s]]
 
 Options:
 
@@ -40,8 +40,8 @@ import codecs
 import subprocess
 
 from cleanup import Cleanup
-import orgklip.bookid as bookid
-from orgklip.clipper import KindleBook
+import docid
+from clipper import KindleBook
 
 
 class ImportBooks(object):
@@ -77,7 +77,8 @@ class ImportBooks(object):
         if not os.path.exists(book):
             book = os.path.join(self.sourcedir, book)
         print book
-        if 'azw' in book:
+        ext = os.path.splitext(book)[1]
+        if ext == '.azw':
             if self.cleanup:
                 book = self.cleanup.decrypt(book)
             else:
@@ -85,19 +86,22 @@ class ImportBooks(object):
                        ", need a kindle serial")
                 return
 
-        bibstr, bibid = bookid.bibstr(bookid.guess_meta(book))
+        bibstr, meta = docid.bibstr(book, interactive=True)
+        bidid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
         if new or self.also_repeated:
-            newbook = os.path.join(self.masterdir, bibid + '.mobi')
-            if 'mobi' in book:
-                os.rename(book, newbook)
+            newbook = os.path.join(self.masterdir, bibid)
+            if ext in ('.mobi', '.pdf'):
+                os.rename(book, newbook + ext)
             else:
+                newbook = newbook + '.mobi'
                 devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
                 if subprocess.call(['ebook-convert', book,
                                     newbook],
                                     stdout=devnull, stderr=devnull):
-                    print "** Error converting to", newbook, "(maybe DRMed book?)"
+                    print ("** Error converting to " + newbook +
+                           " (maybe DRMed book?)")
                     return None
 
             self.clippings_to_org(newbook)
@@ -106,8 +110,10 @@ class ImportBooks(object):
 
     def convert_all(self):
         for book in os.listdir(self.sourcedir):
-            if 'azw' in book or 'epub' in book or 'mobi' in book:
+            ext = os.path.splitext(book)[1]
+            if ext in ('.azw', '.epub', '.mobi', '.pdf'):
                 self.convert(book)
+
 
 def as_main():
     import os, sys
