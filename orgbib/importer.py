@@ -87,13 +87,14 @@ class ImportBooks(object):
                 return
 
         bibstr, meta = docid.bibstr(book, interactive=True)
-        bidid = meta['bibid']
+        bibid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
         if new or self.also_repeated:
             newbook = os.path.join(self.masterdir, bibid)
             if ext in ('.mobi', '.pdf'):
-                os.rename(book, newbook + ext)
+                newbook = newbook + ext
+                os.rename(book, newbook)
             else:
                 newbook = newbook + '.mobi'
                 devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
