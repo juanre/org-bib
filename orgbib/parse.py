@@ -126,10 +126,11 @@ class Clippings(object):
             if title in k:
                 return k
 
-        title = title.lower()
+        titlelc = title.lower()
         for k in self.clips.keys():
-            if title in k.lower():
+            if titlelc in k.lower():
                 return k
+        return title
 
     def list_book(self, title):
         full_name = self.book_full_name(title)

@@ -54,6 +54,13 @@ def extract_quotes(orgfile):
                                       encoding='utf-8').read(),
                           re.DOTALL|re.IGNORECASE))
 
+def extract_ids(orgfile):
+    return set(re.findall(r':custom_id: (.+?)\n',
+                          codecs.open(orgfile,
+                                      encoding='utf-8').read(),
+                          re.DOTALL|re.IGNORECASE))
+
+#:Custom_ID: harford-2011---adapt
 
 class KindleBook(object):
     """Associated to a mobi book file, it knows how to extract the
@@ -63,12 +70,15 @@ class KindleBook(object):
     """
     def __init__(self, book_file, org_path='.', text_path='',
                  clips_file='/Volumes/Kindle/documents/My Clippings.txt',
-                 bu_clips_file='kindle-clippings.txt'):
+                 bu_clips_file='kindle-clippings.txt', meta=None):
         self.clips_file = clips_file
         self.bu_clips_file = bu_clips_file
         self.book_file = book_file
-        #self.meta = docid.guess_meta(book_file)
-        self.bibstr, self.meta = docid.bibstr(book_file)
+        if meta is None:
+            self.meta = docid.bibstr(book_file)[1]
+        else:
+            self.meta = meta
+        #self.bibstr, self.meta = docid.bibstr(book_file)
         self.bibid = self.meta['bibid']
         self.title = self.meta['title']
         self.org_path = org_path
@@ -128,13 +138,17 @@ class KindleBook(object):
             outfile = os.path.join(self.org_path, self.bibid + '.org')
 
         skip = set([])
+        present_ids = set([])
         if os.path.exists(outfile):
             skip = extract_quotes(outfile)
+            present_ids = extract_ids(outfile)
 
         clippings = [(clip, meta, note)
                      for clip, meta, note in kc.list_book(self.title)
                      if not (upcase_first(clip) in skip)]
-        if not clippings:
+
+        ext = os.path.splitext(self.book_file)[1]
+        if not clippings and (ext != '.pdf' or self.bibid in present_ids):
             return
 
         if not os.path.exists(outfile):

@@ -16,6 +16,8 @@ import webbrowser, urllib
 import docid
 import collections
 import subprocess
+import dateutil.parser
+
 from getch import getch
 
 
@@ -31,14 +33,30 @@ def print_meta(meta, fields, new_meta=None):
             value = '(%s)' % value
         print "%15s [%s]: %s" % (field, field[0], value)
 
+def userinput(valuestr, multiline):
+    if valuestr:
+        valuestr = ' (%s)' % valuestr
+    print u'Value%s: ' % valuestr,
+    if multiline:
+        print
+        value = u''
+        line = raw_input('').decode(sys.stdin.encoding)
+        while line:
+            value += (line + '\n')
+            line = raw_input('').decode(sys.stdin.encoding)
+        return value
+    else:
+        return raw_input('').decode(sys.stdin.encoding)
+
 def interactive_meta(bookfile):
     meta = docid.guess_meta(bookfile)
 
     fields = ['author', 'date', 'isbn', 'language', 'publisher',
-              'title', 'url', 'google', 'books at google', 'open library',
-              'wikipedia']
+              'title', 'url', 'bibstr',
+              'google', 'Books at google', 'open library', 'wikipedia']
     formatters = collections.defaultdict(lambda: lambda v: v)
-    formatters['author'] = lambda a: u' & '.join(a.split(u' and '))
+    formatters['author'] = lambda a: a.split(u' and ')
+    formatters['date'] = lambda a: dateutil.parser.parse(a)
 
     print '\n', bookfile
     print_meta(meta, fields)
@@ -57,7 +75,7 @@ def interactive_meta(bookfile):
         if search:
             webbrowser.open('http://books.google.com/books?' +
                             urllib.urlencode({'q': search.encode('utf-8')}))
-    formatters['books at google'] = lambda v: open_google_books(v)
+    formatters['Books at google'] = lambda v: open_google_books(v)
 
     def open_open_library(search):
         if not search and 'isbn' in meta:
@@ -78,10 +96,14 @@ def interactive_meta(bookfile):
     def cl_option(fname, val):
         if fname == u'author':
             fname = u'authors'
-        elif fname == u'url':
+            val = u' & '.join(val)
+        elif fname == u'url' or fname == u'bibstr':
             return ''
+        elif fname == u'date':
+            val = str(val.year)
         return u'--' + fname + u'=' + val
 
+    multiline = ['bibstr']
     index = {}
     for field in fields:
         index[field[0]] = field
@@ -98,21 +120,18 @@ def interactive_meta(bookfile):
             print
             continue
         print field
-        valuestr = meta.get(field, u'')
-        if valuestr:
-            valuestr = ' (%s)' % valuestr
-        print u'Value%s: ' % valuestr,
-        value = raw_input('').decode(sys.stdin.encoding)
+        value = userinput(meta.get(field, u''),
+                          multiline=field in multiline)
         formatted_value = formatters[field](value)
         if formatted_value:
-            option = cl_option(field, value)
+            option = cl_option(field, formatted_value)
             if option:
                 devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
                 if subprocess.call(['ebook-meta', option, bookfile],
-                                    stdout=devnull, stderr=devnull):
-                    print "** Error calling ebook-meta on", self.txtbook_file,\
+                                   stdout=devnull, stderr=devnull):
+                    print "** Error calling ebook-meta on", bookfile, \
                       "(maybe DRMed book?)"
-            newmeta[field] = value
+            newmeta[field] = formatted_value
 
             meta = docid.guess_meta(bookfile)
             print_meta(meta, fields, newmeta)

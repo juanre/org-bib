@@ -3,9 +3,12 @@
 
 import re
 import subprocess
+import dateutil.parser
 
 # https://github.com/juanre/dashify
 import dashify
+
+from docmeta import interactive_meta
 
 def ensure_comma(author):
     if not u',' in author:
@@ -41,7 +44,7 @@ def parse_author(info):
 def ask_meta(meta, book):
     return meta
 
-def guess_meta(book, interactive=True):
+def guess_meta(book, required=None):
     """Tries to figure out the metadata of the book (title, author and
     publishing year) using the ebook-meta command line tool from
     calibre.  Install calibre from http://calibre-ebook.com/, then
@@ -52,7 +55,6 @@ def guess_meta(book, interactive=True):
     If interactive is True and not all data can be read ith ebook-meta
     it will ask for the missing parts.
     """
-    import dateutil.parser
     meta = {}
     for line in [re.split(r'\s+:\s+', l) for l in
                  subprocess.check_output(['ebook-meta', book]).splitlines()]:
@@ -77,11 +79,11 @@ def guess_meta(book, interactive=True):
             meta['date'] = published
         else:
             meta[what] = u'' + info.decode('utf8')
-    if interactive and not ('isbn' in meta and 'title' in meta and
-                            'author' in meta and 'date' in meta):
-        return ask_meta(meta, book)
-    else:
-        return meta
+    if required:
+        for r in required:
+            if not r in meta:
+                return interactive_meta(book)[0]
+    return meta
 
 def reasonable_length(title):
     """
@@ -142,8 +144,12 @@ def bibid(title, author, year=''):
         title = '--' + title
     return (author + year + title)
 
-def bibstr(docfile, doctype='book', interactive=True):
-    meta = guess_meta(docfile, interactive)
+def bibstr(docfile, doctype='book'):
+    required = ['isbn', 'title', 'author', 'date']
+    if doctype == 'article':
+        required.append('url')
+
+    meta = guess_meta(docfile, required)
     if 'year' in meta:
         year = meta['year']
     elif 'date' in meta:
@@ -151,6 +157,11 @@ def bibstr(docfile, doctype='book', interactive=True):
     else:
         year = ''
     bid = bibid(meta['title'], meta['author'], year)
+    meta['bibid'] = bid
+
+    if 'bibstr' in meta:
+        return re.sub(u'\{.+,', u'{%s,' % bid, meta['bibstr'], count=1), meta
+
     bib = [bid,
            'title = {%s}' % meta['title'],
            'author = {%s}' % ' and '.join(meta['author']),
@@ -158,7 +169,6 @@ def bibstr(docfile, doctype='book', interactive=True):
     for field in ['isbn', 'publisher', 'url']:
         if field in meta:
             bib.append('%s = {%s}' % (field, meta[field]))
-    meta['bibid'] = bid
     return "@%s {%s\n}" % (doctype, ',\n  '.join(bib)), meta
 
 def _test():

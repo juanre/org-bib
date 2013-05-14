@@ -59,8 +59,7 @@ class ImportBooks(object):
 
     def add_to_bib(self, bibstr, bibid):
         if os.path.exists(self.bibfile):
-            bib = codecs.open(self.bibfile,
-                              encoding='utf-8').read()
+            bib = codecs.open(self.bibfile, encoding='utf-8').read()
         else:
             bib = ''
         if not bibid in bib:
@@ -69,8 +68,8 @@ class ImportBooks(object):
             return True
         return False
 
-    def clippings_to_org(self, bookfile):
-        kc = KindleBook(bookfile, org_path='.', text_path='text')
+    def clippings_to_org(self, bookfile, meta):
+        kc = KindleBook(bookfile, org_path='.', text_path='text', meta=meta)
         kc.print_clippings(self.orgfile)
 
     def convert(self, book):
@@ -86,7 +85,7 @@ class ImportBooks(object):
                        ", need a kindle serial")
                 return
 
-        bibstr, meta = docid.bibstr(book, interactive=True)
+        bibstr, meta = docid.bibstr(book)
         bibid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
@@ -105,7 +104,7 @@ class ImportBooks(object):
                            " (maybe DRMed book?)")
                     return None
 
-            self.clippings_to_org(newbook)
+            self.clippings_to_org(newbook, meta)
             print ' ->', newbook
             return newbook
 
