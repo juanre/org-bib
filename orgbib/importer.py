@@ -24,6 +24,7 @@ Options:
                       clippings will be appended.
 -a, --also-repeated   Process books that already appear on the bib file
                       (by default they are ignored)
+-t str, --type=str    Document type (book or article, default book).
 -k str, --kindle=str  Serial of the kindle for which the books have been
                       downloaded, in case you want to de-drm them.
 -d str, --dedrm=str   Directory where the k4mobidedrm.py file of the
@@ -46,7 +47,8 @@ from clipper import KindleBook
 
 class ImportBooks(object):
     def __init__(self, sourcedir, masterdir, bibfile, orgfile,
-                 serial=None, alfdir=None, also_repeated=False):
+                 serial=None, alfdir=None, also_repeated=False,
+                 doctype='book'):
         self.sourcedir = os.path.expanduser(sourcedir)
         self.masterdir = os.path.expanduser(masterdir)
         if serial and alfdir:
@@ -56,6 +58,7 @@ class ImportBooks(object):
         self.bibfile = os.path.expanduser(bibfile)
         self.orgfile = os.path.expanduser(orgfile)
         self.also_repeated = also_repeated
+        self.doctype = doctype
 
     def add_to_bib(self, bibstr, bibid):
         if os.path.exists(self.bibfile):
@@ -85,7 +88,7 @@ class ImportBooks(object):
                        ", need a kindle serial")
                 return
 
-        bibstr, meta = docid.bibstr(book)
+        bibstr, meta = docid.bibstr(book, self.doctype)
         bibid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
@@ -121,12 +124,13 @@ def as_main():
         print __doc__ % (__author__, __date__)
 
     from getopt import getopt
-    opts, files = getopt(sys.argv[1:], 'hm:s:b:o:ak:d:',
+    opts, files = getopt(sys.argv[1:], 'hm:s:b:o:at:k:d:',
                          ['help', 'master=', 'source=', 'bib=', 'org=',
-                          'also-repeated', 'kindle=', 'dedrm='])
+                          'also-repeated', 'type=', 'kindle=', 'dedrm='])
     master = ''
     source = ''
     also_repeated = False
+    doctype = 'book'
     serial = None
     alfdir = None
     bibfile = 'ref.bib'
@@ -145,13 +149,15 @@ def as_main():
             orgfile = val
         elif opt == '-a' or opt == '--also-repeated':
             also_repeated = True
+        elif opt == '-t' or opt == '--type':
+            doctype = val
         elif opt == '-k' or opt == '--kindle':
             serial = val
         elif opt == '-d' or opt == '--dedrm':
             alfdir = val
 
     fr = ImportBooks(source, master, bibfile, orgfile,
-                     serial, alfdir, also_repeated)
+                     serial, alfdir, also_repeated, doctype)
 
     if files:
         for fname in files:
