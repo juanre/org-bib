@@ -78,13 +78,13 @@ class KindleBook(object):
             self.meta = docid.bibstr(book_file)[1]
         else:
             self.meta = meta
-        #self.bibstr, self.meta = docid.bibstr(book_file)
         self.bibid = self.meta['bibid']
         self.title = self.meta['title']
         self.org_path = org_path
 
         self.txtbook_file = os.path.join(text_path, self.bibid + '.txt')
-        if not os.path.exists(self.txtbook_file):
+        if not os.path.exists(self.txtbook_file) and \
+               os.path.splitext(book_file)[1] != '.pdf':
             if not os.path.exists(text_path):
                 os.makedirs(text_path)
             try:
@@ -163,7 +163,8 @@ class KindleBook(object):
             f.write(u':Custom_ID: %s\n' % self.bibid)
             f.write(u':author: %s\n' % ' and '.join(self.meta['author']))
             for k, v in self.meta.iteritems():
-                if not k in ('tags', 'comments', 'author'):
+                if not k in ('tags', 'comments', 'author', 'author(s)',
+                             'book producer', 'bibstr'):
                     f.write(u':%s: %s\n' % (k, v))
             f.write(u':END:\n')
 

@@ -52,11 +52,12 @@ def interactive_meta(bookfile):
     meta = docid.guess_meta(bookfile)
 
     fields = ['author', 'date', 'isbn', 'language', 'publisher',
-              'title', 'url', 'bibstr',
-              'google', 'Books at google', 'open library', 'wikipedia']
+              'title', 'url', 'bibstr', 'Open file',
+              'google scholar', 'Books at google', 'open library', 'wikipedia']
     formatters = collections.defaultdict(lambda: lambda v: v)
     formatters['author'] = lambda a: a.split(u' and ')
     formatters['date'] = lambda a: dateutil.parser.parse(a)
+    formatters['isbn'] = lambda a: a.replace('-', '')
 
     print '\n', bookfile
     print_meta(meta, fields)
@@ -65,9 +66,19 @@ def interactive_meta(bookfile):
         if not search and 'title' in meta:
             search = meta['title']
         if search:
-            webbrowser.open('http://google.com/' +
+            webbrowser.open('http://scholar.google.com/scholar?' +
                             urllib.urlencode({'q': search.encode('utf-8')}))
-    formatters['google'] = lambda v: open_google(v)
+    formatters['google scholar'] = lambda v: open_google(v)
+
+    def open_file(search):
+        if sys.platform.startswith('darwin'):
+            os.system('open ' + bookfile)
+        elif sys.platform.startswith('linux'):
+            os.system('xdg-open ' + bookfile)
+        else:
+            # Assume windows
+            os.system('start ' + bookfile)
+    formatters['Open file'] = lambda v: open_file(v)
 
     def open_google_books(search):
         if not search and 'title' in meta:

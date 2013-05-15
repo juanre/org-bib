@@ -135,7 +135,7 @@ class Clippings(object):
     def list_book(self, title):
         full_name = self.book_full_name(title)
         if full_name:
-            return self.clips[full_name]
+            return self.clips.get(full_name, [])
         else:
             return []
 
