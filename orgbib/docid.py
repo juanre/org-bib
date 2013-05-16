@@ -82,7 +82,11 @@ def guess_meta(book, required=None):
     if required:
         for r in required:
             if not r in meta:
-                return interactive_meta(book)[0]
+                meta, key = interactive_meta(book)
+                if key == 'q':
+                    import sys
+                    sys.exit(1)
+                return meta
     return meta
 
 def reasonable_length(title):

@@ -12,6 +12,7 @@ __date__ = "2013-05-02"
 __author__ = "Juan Reyero, http://juanreyero.com"
 
 import sys, os, codecs
+import re
 import webbrowser, urllib
 import docid
 import collections
@@ -48,6 +49,25 @@ def userinput(valuestr, multiline):
     else:
         return raw_input('').decode(sys.stdin.encoding)
 
+def cl_option(fname, val):
+    if fname == u'author':
+        fname = u'authors'
+        val = u' & '.join(val)
+    elif fname == u'url' or fname == u'bibstr':
+        return ''
+    elif fname == u'date':
+        val = str(val.year)
+    return u'--' + fname + u'=' + val
+
+def field_to_file(field, value, bookfile):
+    option = cl_option(field, value)
+    if option:
+        devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
+        if subprocess.call(['ebook-meta', option, bookfile],
+                           stdout=devnull, stderr=devnull):
+            print "** Error calling ebook-meta on", bookfile, \
+              "(maybe DRMed book?)"
+
 def interactive_meta(bookfile):
     meta = docid.guess_meta(bookfile)
 
@@ -72,9 +92,9 @@ def interactive_meta(bookfile):
 
     def open_file(search):
         if sys.platform.startswith('darwin'):
-            os.system('open ' + bookfile)
+            os.system('open \"' + bookfile + '\"')
         elif sys.platform.startswith('linux'):
-            os.system('xdg-open ' + bookfile)
+            os.system('xdg-open \"' + bookfile + '\"')
         else:
             # Assume windows
             os.system('start ' + bookfile)
@@ -104,21 +124,27 @@ def interactive_meta(bookfile):
                             'Special:BookSources/' + search)
     formatters['wikipedia'] = lambda v: open_wikipedia(v)
 
-    def cl_option(fname, val):
-        if fname == u'author':
-            fname = u'authors'
-            val = u' & '.join(val)
-        elif fname == u'url' or fname == u'bibstr':
-            return ''
-        elif fname == u'date':
-            val = str(val.year)
-        return u'--' + fname + u'=' + val
+    newmeta = {}
+
+    def meta_from_bibstr(bs):
+        translate = {'date': 'year'}
+        for f in fields:
+            fb = f
+            if f in translate:
+                fb = translate[f]
+            m = re.search(u'' + fb + '=\{(.+)\}', bs)
+            if m:
+                val = formatters[f](m.group(1))
+                field_to_file(f, val, bookfile)
+                newmeta[f] = val
+        return bs
+    formatters['bibstr'] = lambda v: meta_from_bibstr(v)
+
 
     multiline = ['bibstr']
     index = {}
     for field in fields:
         index[field[0]] = field
-    newmeta = {}
     while True:
         print 'Option (enter to next book, q to exit): ',
         option = getch()
@@ -135,13 +161,14 @@ def interactive_meta(bookfile):
                           multiline=field in multiline)
         formatted_value = formatters[field](value)
         if formatted_value:
-            option = cl_option(field, formatted_value)
-            if option:
-                devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
-                if subprocess.call(['ebook-meta', option, bookfile],
-                                   stdout=devnull, stderr=devnull):
-                    print "** Error calling ebook-meta on", bookfile, \
-                      "(maybe DRMed book?)"
+            field_to_file(field, formatted_value, bookfile)
+            ##option = cl_option(field, formatted_value)
+            ##if option:
+            ##    devnull = codecs.open(os.devnull, 'w', encoding='utf-8')
+            ##    if subprocess.call(['ebook-meta', option, bookfile],
+            ##                       stdout=devnull, stderr=devnull):
+            ##        print "** Error calling ebook-meta on", bookfile, \
+            ##          "(maybe DRMed book?)"
             newmeta[field] = formatted_value
 
             meta = docid.guess_meta(bookfile)
