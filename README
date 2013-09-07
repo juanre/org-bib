@@ -1,2 +1,24 @@
-refstore --- Organize references: kindle books, and PDF books and papers
+org-bib --- Organize kindle books, PDF books and papers with org-mode
 
+
+* Utils
+
+- bibimport: Import books, possibly cleaning them.  For each book: build a bibid based on the metadata, add an entry to a bib file, copy the book to a centralized location with a name built from the bibid, and add the clippings to an org-mode file assuming that the kindle clipping file is present (either as /Volumes/Kindle/documents/My Clippings.txt or as kindle-clippings.txt in the current directory.)
+
+- azwclean: Ugly hack to clean up drm without too much noise and with dashified names.
+
+- docmeta: Interactive wrapper around some parts of ebook-meta, one of the apps that come with calibre, that helps improve book metadata (and lookup the book in several reference sites).
+
+- bookclips: Extracts clippings associated to books from the Kindle clippings file (to be found in the kindle as "documents/My Clippings.txt") and produces, for all the books in the command line,
+  + a unique id, usable by bibtex and as the canonical file name for the different formats;
+  + a text version;
+  + an org-mode formatted entry including all the metadata and all the book's clippings, with links to the position in the text version of the book where they appear.
+
+
+* Requirements:
+
+- dashify (https://github.com/juanre/dashify)
+- dateutil.parser (http://labix.org/python-dateutil)
+- ebook-meta and ebook-convert, command line tools from calibre.
+  Install calibre from http://calibre-ebook.com/, then Preferences ->
+  Miscelaneous -> Install command line tools.
