@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""refstore
+"""bibimport
 By %s
 %s
 
@@ -41,8 +41,25 @@ import codecs
 import subprocess
 
 from cleanup import Cleanup
-import docid
-from clipper import KindleBook
+import orgklip.docid
+from orgklip.clipper import KindleBook
+
+from docmeta import interactive_meta
+
+def guess_meta(book, doctype):
+    required = ['isbn', 'title', 'author', 'date']
+    if doctype == 'article':
+        required.append('url')
+    meta = docid.guess_meta(book)
+    if required:
+        for r in required:
+            if not r in meta:
+                meta, key = interactive_meta(book)
+                if key == 'q':
+                    import sys
+                    sys.exit(1)
+                return meta
+
 
 
 class ImportBooks(object):
@@ -88,7 +105,7 @@ class ImportBooks(object):
                        ", need a kindle serial")
                 return
 
-        bibstr, meta = docid.bibstr(book, self.doctype)
+        bibstr, meta = docid.bibstr(book, self.doctype, guess_meta(self.doctype))
         bibid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
