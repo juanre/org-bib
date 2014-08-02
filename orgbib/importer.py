@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""refstore
+"""bibimport
 By %s
 %s
 

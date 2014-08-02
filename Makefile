@@ -3,7 +3,8 @@ test:
 	python setup.py test
 
 install:
-	python setup.py install
+	python setup.py build
+	sudo python setup.py install
 
 clean:
 	rm -rf *.egg-info

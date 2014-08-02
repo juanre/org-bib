@@ -92,11 +92,12 @@ def parse_clippings(clips_file):
         if len(lines) == 3:
             book, what, content = lines
             meta = parse_metadata(what)
-            if meta.kind == 'note':
-                ## We associate notes to the previous highlight.
-                clips[book][-1][2] = content
-            else:
-                clips[book].append([content, meta, ''])
+            if meta is not None:
+                if meta.kind == 'note':
+                    ## We associate notes to the previous highlight.
+                    clips[book][-1][2] = content
+                else:
+                    clips[book].append([content, meta, ''])
     return clips
 
 
