@@ -159,7 +159,7 @@ class KindleBook(object):
         with codecs.open(outfile, 'a', encoding='utf-8') as f:
             f.write(u'\n** ' + kc.book_full_name(self.title) + '\n')
 
-            f.write(u':PROPERTIES:\n:on: <%s>\n' %
+            f.write(u':PROPERTIES:\n:on: [%s]\n' %
                     datetime.date.today().isoformat())
             f.write(u':Custom_ID: %s\n' % self.bibid)
             f.write(u':author: %s\n' % ' and '.join(self.meta['author']))
@@ -184,7 +184,7 @@ class KindleBook(object):
                             + '\n')
                     props = ''
                     if meta.when:
-                        props = ':added: <%s>\n' % meta.when.isoformat(' ')
+                        props = ':added: [%s]\n' % meta.when.isoformat(' ')
                     if meta.loc:
                         props += ':loc: %s\n' % str(meta.loc)
                     if meta.page:
