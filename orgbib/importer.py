@@ -73,7 +73,7 @@ class ImportBooks(object):
 
     def clippings_to_org(self, bookfile, meta):
         kc = KindleBook(bookfile, org_path='.', text_path='text', meta=meta)
-        kc.print_clippings(self.orgfile)
+        kc.print_clippings(self.orgfile, self.doctype)
 
     def convert(self, book):
         if not os.path.exists(book):
@@ -107,9 +107,9 @@ class ImportBooks(object):
                            " (maybe DRMed book?)")
                     return None
 
-            self.clippings_to_org(newbook, meta)
-            print ' ->', newbook
-            return newbook
+        self.clippings_to_org(newbook, meta)
+        print ' ->', newbook
+        return newbook
 
     def convert_all(self):
         for book in os.listdir(self.sourcedir):

@@ -45,19 +45,21 @@ def parse_metadata(line):
     Meta(kind='highlight', page=125, loc=(1420, 1421), when=datetime.datetime(2013, 4, 20, 14, 19))
     >>> parse_metadata('- Bookmark on Page 137 | Loc. 2396  | Added on Sunday, September 18, 2011, 10:37 PM')
     Meta(kind='bookmark', page=137, loc=(2396,), when=datetime.datetime(2011, 9, 18, 22, 37))
+    >>> parse_metadata('- Your Highlight on page 122 | Location 2184-2188 | Added on Saturday, August 2, 2014 8:16:19 PM')
+    Meta(kind='highlight', page=122, loc=(2184, 2188), when=datetime.datetime(2014, 8, 2, 20, 16, 19))
     """
-    if '- Highlight' in line:
+    if '- Highlight' in line or '- Your Highlight' in line:
         kind = 'highlight'
-    elif '- Note' in line:
+    elif '- Note' in line or '- Your Note' in line:
         kind = 'note'
-    elif '- Bookmark' in line:
+    elif '- Bookmark' in line or '- Your Bookmark' in line:
         kind = 'bookmark'
     else:
         return None
     line = line.split('|')
 
     page = None
-    m = re.search(r'Page (\d+)', line[0])
+    m = re.search(r'[Pp]age (\d+)', line[0])
     if m:
         page = int(m.group(1))
 
@@ -65,6 +67,10 @@ def parse_metadata(line):
     m = re.search(r'Loc. (\d+-?\d+)', line[-2])
     if m:
         loc = parse_loc(m.group(1))
+    else:
+        m = re.search(r'Location (\d+-?\d+)', line[-2])
+        if m:
+            loc = parse_loc(m.group(1))
 
     when = None
     if 'Added on' in line[-1]:
@@ -86,11 +92,15 @@ def parse_clippings(clips_file):
     ## Deprecated zero-width no-break unicode space
     content = content.replace(u'\ufeff', u'')
 
+    # At some point it started coming with \r that mess everything up
+    content = content.replace(u'\r','')
+
     clips = collections.defaultdict(list)
-    for section in content.split(u"==========\r\n"):
-        lines = [l for l in section.split(u'\r\n') if l]
-        if len(lines) == 3:
-            book, what, content = lines
+    for section in content.split(u"=========="):
+        lines = [l for l in section.split(u'\n') if l]
+        if len(lines) >= 3:
+            book, what = lines[0], lines[1]
+            content = '\n'.join(lines[2:])
             meta = parse_metadata(what)
             if meta is not None:
                 if meta.kind == 'note':
@@ -121,7 +131,6 @@ class Clippings(object):
     def book_full_name(self, title):
         if title in self.clips:
             return title
-
         title = title.split(':')[0]
         for k in self.clips.keys():
             if title in k:

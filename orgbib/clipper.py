@@ -45,8 +45,8 @@ __author__ = "Juan Reyero, http://juanreyero.com"
 import os, codecs, sys, subprocess
 import re
 import datetime
-import parse
-import docid
+import orgbib.parse
+import orgbib.docid
 
 def extract_quotes(orgfile):
     return set(re.findall(r'\#\+begin_quote\n(.+?)\n\#\+end_quote',
@@ -75,7 +75,7 @@ class KindleBook(object):
         self.bu_clips_file = bu_clips_file
         self.book_file = book_file
         if meta is None:
-            self.meta = docid.bibstr(book_file)[1]
+            self.meta = orgbib.docid.bibstr(book_file)[1]
         else:
             self.meta = meta
         self.bibid = self.meta['bibid']
@@ -125,11 +125,11 @@ class KindleBook(object):
             return book[loc.a : loc.a+loc.size]
         return None
 
-    def print_clippings(self, outfile=None):
+    def print_clippings(self, outfile=None, doctype='book'):
         def upcase_first(s):
             return s[0].upper() + s[1:]
 
-        kc = parse.Clippings(self.clips_file, self.bu_clips_file)
+        kc = orgbib.parse.Clippings(self.clips_file, self.bu_clips_file)
 
         if not os.path.exists(self.org_path):
             os.makedirs(self.org_path)
@@ -163,12 +163,18 @@ class KindleBook(object):
             f.write(u':Custom_ID: %s\n' % self.bibid)
             f.write(u':author: %s\n' % ' and '.join(self.meta['author']))
             for k, v in self.meta.iteritems():
-                if not k in ('tags', 'comments', 'author', 'author(s)',
-                             'book producer', 'bibstr'):
+                if (not k in ('tags', 'comments', 'author', 'author(s)',
+                              'book producer', 'bibstr')
+                    and not ' ' in k):
                     f.write(u':%s: %s\n' % (k, v))
             f.write(u':END:\n')
 
-            f.write(u'[[file:%s][Master]].\n\n' % self.book_file)
+            if doctype == 'book':
+                f.write(u'\n[[file:%s][Master]].\n' % self.book_file)
+                f.write(u'[[bib:%s][Bib entry]].\n\n' % self.bibid)
+            else:
+                f.write(u'\n[[paper:%s][Master]].\n' % self.bibid)
+                f.write(u'[[bib:%s][Bib entry]].\n\n' % self.bibid)
 
             for clip, meta, note in clippings:
                 if meta.kind != 'bookmark':

@@ -48,9 +48,14 @@ def dashed_author(author):
     'cialdini'
     >>> dashed_author('Cialdini')
     'cialdini'
+    >>> dashed_author("C{}\'ialdi\~ni")
+    'cialdini'
     """
     if not isinstance(author, basestring):
         author = author[0]
+
+    author = re.sub(u"[{}\\\\\\'~]", '', author)
+
     if ',' in author:
         last, first = author.split(',')
         return dashify.dash_name(last)
