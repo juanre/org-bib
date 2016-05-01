@@ -36,6 +36,7 @@ __date__ = "2013-04-29"
 __author__ = "Juan Reyero, http://juanreyero.com"
 
 import os
+import shutil
 import re
 import codecs
 import subprocess
@@ -72,13 +73,14 @@ class ImportBooks(object):
         return False
 
     def clippings_to_org(self, bookfile, meta):
-        kc = KindleBook(bookfile, org_path='.', text_path='text', meta=meta)
+        kc = KindleBook(bookfile, text_path='text', meta=meta)
         kc.print_clippings(self.orgfile, self.doctype)
 
-    def convert(self, book):
+    def convert(self, book, bu_dir='imported'):
         if not os.path.exists(book):
             book = os.path.join(self.sourcedir, book)
         print book
+        original_book = book
         ext = os.path.splitext(book)[1]
         if ext == '.azw':
             if self.cleanup:
@@ -88,12 +90,12 @@ class ImportBooks(object):
                        ", need a kindle serial")
                 return
 
-        bibstr, meta = docid.bibstr(book, self.doctype)
+        bibstr, meta = docid.bibstr(book, self.doctype, add_isbn=True)
         bibid = meta['bibid']
 
         new = self.add_to_bib(bibstr, bibid)
+        newbook = os.path.join(self.masterdir, bibid)
         if new or self.also_repeated:
-            newbook = os.path.join(self.masterdir, bibid)
             if ext in ('.mobi', '.pdf'):
                 newbook = newbook + ext
                 os.rename(book, newbook)
@@ -106,6 +108,12 @@ class ImportBooks(object):
                     print ("** Error converting to " + newbook +
                            " (maybe DRMed book?)")
                     return None
+                else:
+                    if not os.path.exists(bu_dir):
+                        os.mkdir(bu_dir)
+                    bu = os.path.join(bu_dir, bibid + ext)
+                    print '  ...moving away', original_book, 'to', bu
+                    shutil.move(original_book, bu)
 
         self.clippings_to_org(newbook, meta)
         print ' ->', newbook
