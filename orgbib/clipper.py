@@ -14,6 +14,9 @@ produces, for all the books in the command line,
   book's clippings, with links to the position in the text version of
   the book where they appear.
 
+If a new file is created the books will be written under an * Inbox
+heading.
+
 Requirements:
 
 - dashify (https://github.com/juanre/dashify)
@@ -26,7 +29,7 @@ Usage: bookclips [options] book_file[s]
 
 Options:
 
--o dir, --org-path=dir  Directory to which the org-mode file will be saved.
+-o fname, --org-file=fname  File to which the org-mode file will be saved.
 -t dir, --text-path=dir Directory to which the text version of the book (and
                         target of the links) will be saved.
 -c file, --clips=file   File where the clips are to be found.  Defaults to
@@ -37,6 +40,7 @@ Options:
                              one will be used, unless the next option is set.
 -n, --no-backup         Do not backup the clippings file.
 -h, --help              This help.
+
 """
 __date__ = "2013-04-29"
 __author__ = "Juan Reyero, http://juanreyero.com"
@@ -68,7 +72,7 @@ class KindleBook(object):
     with all the metadata.  It can also produce the bib entry for the
     book.
     """
-    def __init__(self, book_file, org_path='.', text_path='',
+    def __init__(self, book_file, text_path='',
                  clips_file='/Volumes/Kindle/documents/My Clippings.txt',
                  bu_clips_file='kindle-clippings.txt', meta=None):
         self.clips_file = clips_file
@@ -80,7 +84,6 @@ class KindleBook(object):
             self.meta = meta
         self.bibid = self.meta['bibid']
         self.title = self.meta['title']
-        self.org_path = org_path
 
         self.txtbook_file = os.path.join(text_path, self.bibid + '.txt')
         if not os.path.exists(self.txtbook_file) and \
@@ -125,17 +128,11 @@ class KindleBook(object):
             return book[loc.a : loc.a+loc.size]
         return None
 
-    def print_clippings(self, outfile=None, doctype='book'):
+    def print_clippings(self, outfile, doctype='book'):
         def upcase_first(s):
             return s[0].upper() + s[1:]
 
         kc = orgbib.parse.Clippings(self.clips_file, self.bu_clips_file)
-
-        if not os.path.exists(self.org_path):
-            os.makedirs(self.org_path)
-
-        if outfile is None:
-            outfile = os.path.join(self.org_path, self.bibid + '.org')
 
         skip = set([])
         present_ids = set([])
@@ -148,15 +145,19 @@ class KindleBook(object):
                      if not (upcase_first(clip) in skip)]
 
         ext = os.path.splitext(self.book_file)[1]
-        if not clippings and (ext != '.pdf' or self.bibid in present_ids):
+        if not clippings:
             return
+
+        if self.bibid in present_ids:
+            print '*** duplicating entry', self.bibid
 
         if not os.path.exists(outfile):
             with codecs.open(outfile, 'w', encoding='utf-8') as f:
-                f.write(u'# -*- coding: utf-8 -*-\n')
+                f.write(u'# -*- coding: utf-8 -*-\n\n')
+                f.write(u'* Inbox\n\n')
 
         with codecs.open(outfile, 'a', encoding='utf-8') as f:
-            f.write(u'\n* ' + kc.book_full_name(self.title) + '\n')
+            f.write(u'\n** ' + kc.book_full_name(self.title) + '\n')
 
             f.write(u':PROPERTIES:\n:on: <%s>\n' %
                     datetime.date.today().isoformat())
@@ -171,14 +172,14 @@ class KindleBook(object):
 
             if doctype == 'book':
                 f.write(u'\n[[file:%s][Master]].\n' % self.book_file)
-                f.write(u'[[bib:%s][Bib entry]].\n\n' % self.bibid)
+                f.write(u'[[bib:%s][Bib entry]].\n' % self.bibid)
             else:
                 f.write(u'\n[[paper:%s][Master]].\n' % self.bibid)
-                f.write(u'[[bib:%s][Bib entry]].\n\n' % self.bibid)
+                f.write(u'[[bib:%s][Bib entry]].\n' % self.bibid)
 
             for clip, meta, note in clippings:
                 if meta.kind != 'bookmark':
-                    f.write(u'** ' +
+                    f.write(u'\n*** ' +
                             upcase_first(u' '.join(clip.split(' ')[:10]))
                             + '\n')
                     props = ''
@@ -191,12 +192,13 @@ class KindleBook(object):
                     f.write(u':PROPERTIES:\n%s:END:\n' % props)
                     if note:
                         f.write(upcase_first(note) + u'\n\n')
-                    link = self.find_clipping(clip)
+                    #!!link = self.find_clipping(clip)
+                    link = ''
                     if link:
                         f.write(u'[[file:%s::%s][Read more]].\n' %
                                 (self.txtbook_file, link))
                     f.write(u'\n#+begin_quote\n' + upcase_first(clip) +
-                            u'\n#+end_quote\n\n')
+                            u'\n#+end_quote\n')
 
 
 def as_main():
@@ -206,14 +208,14 @@ def as_main():
 
     from getopt import getopt
     opts, files = getopt(sys.argv[1:], 'hc:b:no:t:',
-                         ['help', 'clips=', 'backup-file=',
-                          'no-backup'
-                          'org-path=', 'text-path='])
+                         ['help', 'clips=', 'backup-file=', 'no-backup',
+                          'org-file=', 'text-path='])
+
 
     clips_file = '/Volumes/Kindle/documents/My Clippings.txt'
     bu_clips_file = 'kindle-clippings.txt'
     backup = True
-    org_path = ''
+    org_file = None
     text_path = ''
     for (opt, val) in opts:
         if   opt == '-h' or opt == '--help':
@@ -225,8 +227,8 @@ def as_main():
             bu_clips_file = val
         elif opt == '-n' or opt == '--no-backup':
             backup = False
-        elif opt == '-o' or opt == '--org-path':
-            org_path = val
+        elif opt == '-o' or opt == '--org-file':
+            org_file = val
         elif opt == '-t' or opt == '--text-path':
             text_path = val
 
@@ -234,8 +236,8 @@ def as_main():
         bu_clips_file = None
 
     for fname in files:
-        KindleBook(fname, org_path, text_path,
-                   clips_file, bu_clips_file).print_clippings()
+        KindleBook(fname, text_path,
+                   clips_file, bu_clips_file).print_clippings(org_file)
 
 
 if __name__ == '__main__':

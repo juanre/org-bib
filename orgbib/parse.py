@@ -108,6 +108,7 @@ def parse_clippings(clips_file):
                     clips[book][-1][2] = content
                 else:
                     clips[book].append([content, meta, ''])
+
     return clips
 
 

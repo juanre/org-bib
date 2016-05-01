@@ -73,8 +73,10 @@ def bibid(title, author, year=''):
         title = '--' + title
     return (author + year + title)
 
-def bibstr(docfile, doctype='book'):
-    required = ['isbn', 'title', 'author', 'date']
+def bibstr(docfile, doctype='book', add_isbn=False):
+    required = ['title', 'author', 'date']
+    if add_isbn:
+        required.append('isbn')
     if doctype == 'article':
         required.append('url')
 

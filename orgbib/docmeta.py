@@ -89,6 +89,7 @@ def guess_meta(book, required=None):
     if required:
         for r in required:
             if not r in meta:
+                print 'Missing', r
                 meta, key = interactive_meta(book)
                 if key == 'q':
                     import sys
